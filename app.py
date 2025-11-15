@@ -5,13 +5,13 @@ import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-# Download stopwords (required for Streamlit Cloud)
+# Required on Streamlit Cloud
 nltk.download("stopwords")
 
 ps = PorterStemmer()
 stopwords_set = set(stopwords.words("english"))
 
-# Load model and vectorizer
+# Load model & vectorizer
 @st.cache_resource
 def load_artifacts():
     model = pickle.load(open("fake_news_model.pkl", "rb"))
@@ -20,55 +20,85 @@ def load_artifacts():
 
 model, vectorizer = load_artifacts()
 
-# Preprocess function
+# Preprocessing
 def preprocess(text):
     text = re.sub(r"[^a-zA-Z]", " ", text).lower()
     words = text.split()
     words = [ps.stem(w) for w in words if w not in stopwords_set]
     return " ".join(words)
 
-# ---------------- UI DESIGN ---------------- #
-st.set_page_config(page_title="Fake News Detector", page_icon="📰", layout="centered")
+# ---------------- Dashboard UI ---------------- #
 
-# Title Section
+st.set_page_config(page_title="Fake News Detector", page_icon="📰", layout="wide")
+
+# Sidebar
+st.sidebar.title("🧭 Navigation")
+st.sidebar.write("Use this dashboard to detect fake news using an ML model.")
+st.sidebar.markdown("---")
+st.sidebar.info("Created by **Arya Kshirsagar**\n\nB.Tech AIML | Zeal College")
+
+# Main Title
 st.markdown(
     """
-    <h1 style='text-align: center; color: white;'>📰 Fake News Detector</h1>
-    <p style='text-align: center; font-size:18px;'>
-        Enter a news headline below to check whether it is <b style="color:lightgreen;">Real</b> or 
+    <h1 style='text-align:center; color:white;'>📰 Fake News Detection Dashboard</h1>
+    <p style='text-align:center; font-size:18px; color:#cccccc;'>
+        A Machine Learning-powered tool to classify news headlines as <b style="color:lightgreen;">Real</b> or 
         <b style="color:#ff4b4b;">Fake</b>.
     </p>
-    """,
-    unsafe_allow_html=True
+    <br>
+    """, unsafe_allow_html=True
 )
 
-# Input Box
-headline = st.text_area("Enter headline:", "")
+# Layout (Dashboard style)
+col1, col2 = st.columns([2, 1])
 
-# Predict Button
-if st.button("🔍 Predict"):
-    if headline.strip():
-        with st.spinner("Analyzing the headline..."):
-            processed = preprocess(headline)
-            vect = vectorizer.transform([processed])
-            prediction = model.predict(vect)[0]
+with col1:
+    st.subheader("✏️ Enter a news headline")
+    headline = st.text_area(" ", height=150)
 
-        # Show result beautifully
-        if prediction == 0:
-            st.success("✅ The news appears to be **REAL**.")
+    if st.button("🔍 Run Fake News Detection", use_container_width=True):
+
+        if headline.strip():
+
+            with st.spinner("Analyzing… Please wait"):
+                processed = preprocess(headline)
+                vect = vectorizer.transform([processed])
+                prediction = model.predict(vect)[0]
+
+            if prediction == 0:
+                st.success("✅ **REAL NEWS** — This headline appears trustworthy.")
+            else:
+                st.error("🚨 **FAKE NEWS** — This headline is likely misleading.")
+
         else:
-            st.error("🚨 This headline is likely **FAKE**.")
-    else:
-        st.warning("Please enter a headline before predicting.")
+            st.warning("Please enter a headline before predicting.")
+
+with col2:
+    st.subheader("📊 Model Info")
+    st.info("""
+    **Model:** Logistic Regression  
+    **Vectorizer:** TF-IDF (5000 features)  
+    **Accuracy:** ~91%  
+    **Dataset:** WELFake News Dataset  
+    """)
+
+    st.subheader("ℹ️ How It Works")
+    st.write("""
+    - Removes stopwords  
+    - Applies stemming  
+    - Converts text to TF-IDF  
+    - Logistic Regression makes the final prediction  
+    """)
 
 # Footer
 st.markdown(
     """
-    <hr>
-    <p style='text-align:center; color:gray; font-size:14px;'>
-        Developed by <b>Arya Kshirsagar</b> — Zeal College of Engineering & Research (AIML)
+    <br><hr>
+    <p style='text-align:center; font-size:13px; color:gray;'>
+        Built by <b>Arya Kshirsagar</b> — Fake News Detection Project (AIML)
     </p>
     """,
     unsafe_allow_html=True
 )
+
 
